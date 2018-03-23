@@ -24,10 +24,16 @@ public:
     if (fd_ != -1) {
       ::close(fd_);
       fd_ = -1;
+      for (auto& cb: closed_callbacks_) {
+	cb();
+      }
     }
   }
   void setOptions(const OptionsSharedPtr& options) override { options_ = options; }
   const OptionsSharedPtr& options() const override { return options_; }
+  void addClosedCallback(std::function<void()>&& cb) override {
+    closed_callbacks_.emplace_back(std::move(cb));
+  }
 
 protected:
   SocketImpl(int fd, const Address::InstanceConstSharedPtr& local_address)
@@ -36,6 +42,7 @@ protected:
   int fd_;
   Address::InstanceConstSharedPtr local_address_;
   OptionsSharedPtr options_;
+  std::vector<std::function<void()>> closed_callbacks_;
 };
 
 class ListenSocketImpl : public SocketImpl {

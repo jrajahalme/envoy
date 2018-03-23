@@ -62,6 +62,11 @@ public:
    * @return the socket options stored earlier with setOptions(), if any.
    */
   virtual const OptionsSharedPtr& options() const PURE;
+
+  /**
+   * Add a socket close callback that is called after the underlying socket is closed.
+   */
+  virtual void addClosedCallback(std::function<void()>&&) PURE;
 };
 
 typedef std::unique_ptr<Socket> SocketPtr;
