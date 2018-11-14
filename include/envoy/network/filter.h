@@ -194,6 +194,20 @@ public:
    * @param success boolean telling whether the filter execution was successful or not.
    */
   virtual void continueFilterChain(bool success) PURE;
+
+  /**
+   * Create a new (accepted) connection using 'socket'. This enables a single accepted connection to
+   * spawn multiple (multiplexed) server connections. 'socket' must have detected transport protocol
+   * set to a type that can deal with a multiplexed connection data.  The listener filter calling
+   * this callback must return `StopIteration` from it's `onAccept()` method, without calling
+   * continueFilterChain(true) later, as otherwise the accepted socket would be either closed or
+   * used to create a (normal) new connection that would interfere with the connections created with
+   * this callback. continueFilterChain(false) should be called, however, if the filter execution
+   * failed and the connection must be closed.
+   * @param success boolean telling whether the filter execution was successful or not.
+   */
+  virtual void newConnection(ConnectionSocketPtr&& socket) PURE;
+
 };
 
 /**

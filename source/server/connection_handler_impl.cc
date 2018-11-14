@@ -137,6 +137,11 @@ ConnectionHandlerImpl::findActiveListenerByAddress(const Network::Address::Insta
   return (listener_it != listeners_.end()) ? listener_it->second.get() : nullptr;
 }
 
+void ConnectionHandlerImpl::ActiveSocket::newConnection(Network::ConnectionSocketPtr&& socket) {
+      // Create a new connection on this listener using 'socket'.
+      listener_.newConnection(std::move(socket));
+}
+
 void ConnectionHandlerImpl::ActiveSocket::continueFilterChain(bool success) {
   if (success) {
     if (iter_ == accept_filters_.end()) {
@@ -174,7 +179,7 @@ void ConnectionHandlerImpl::ActiveSocket::continueFilterChain(bool success) {
             Extensions::TransportSockets::TransportSocketNames::get().RawBuffer);
       }
       // Create a new connection on this listener.
-      listener_.newConnection(std::move(socket_));
+      newConnection(std::move(socket_));
     }
   }
 

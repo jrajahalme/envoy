@@ -155,6 +155,7 @@ private:
     Network::ConnectionSocket& socket() override { return *socket_.get(); }
     Event::Dispatcher& dispatcher() override { return listener_.parent_.dispatcher_; }
     void continueFilterChain(bool success) override;
+    void newConnection(Network::ConnectionSocketPtr&& socket) override;
 
     ActiveListener& listener_;
     Network::ConnectionSocketPtr socket_;
