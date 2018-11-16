@@ -56,8 +56,9 @@ void FileEventImpl::assignEvents(uint32_t events) {
                    events |= FileReadyType::Closed;
                  }
 
-                 ASSERT(events);
-                 event->cb_(events);
+                 if (events) {
+		   event->cb_(events);
+		 }
                },
                this);
 }
