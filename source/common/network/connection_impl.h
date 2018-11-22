@@ -104,6 +104,8 @@ public:
 
   // Network::TransportSocketCallbacks
   int fd() const override { return socket_->fd(); }
+  ConnectionSocket& socket() override { return *socket_; }
+
   Connection& connection() override { return *this; }
   void raiseEvent(ConnectionEvent event) override;
   // Should the read buffer be drained?
