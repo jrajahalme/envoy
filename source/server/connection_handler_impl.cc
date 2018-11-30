@@ -138,8 +138,27 @@ ConnectionHandlerImpl::findActiveListenerByAddress(const Network::Address::Insta
 }
 
 void ConnectionHandlerImpl::ActiveSocket::newConnection(Network::ConnectionSocketPtr&& socket) {
-      // Create a new connection on this listener using 'socket'.
-      listener_.newConnection(std::move(socket));
+  // Check if the socket may need to be redirected to another listener.
+  ActiveListener* new_listener = nullptr;
+
+  if (hand_off_restored_destination_connections_ && socket_->localAddressRestored()) {
+    // Find a listener associated with the original destination address.
+    new_listener = listener_.parent_.findActiveListenerByAddress(*socket_->localAddress());
+  }
+  if (new_listener != nullptr) {
+    // Hands off connections redirected by iptables to the listener associated with the
+    // original destination address. Pass 'hand_off_restored_destionations' as false to
+    // prevent further redirection.
+    new_listener->onAccept(std::move(socket_), false);
+  } else {
+    // Set default transport protocol if none of the listener filters did it.
+    if (socket_->detectedTransportProtocol().empty()) {
+      socket_->setDetectedTransportProtocol(
+          Extensions::TransportSockets::TransportSocketNames::get().RawBuffer);
+    }
+    // Create a new connection on this listener using 'socket'.
+    listener_.newConnection(std::move(socket));
+  }
 }
 
 void ConnectionHandlerImpl::ActiveSocket::continueFilterChain(bool success) {
@@ -159,28 +178,7 @@ void ConnectionHandlerImpl::ActiveSocket::continueFilterChain(bool success) {
       }
     }
     // Successfully ran all the accept filters.
-
-    // Check if the socket may need to be redirected to another listener.
-    ActiveListener* new_listener = nullptr;
-
-    if (hand_off_restored_destination_connections_ && socket_->localAddressRestored()) {
-      // Find a listener associated with the original destination address.
-      new_listener = listener_.parent_.findActiveListenerByAddress(*socket_->localAddress());
-    }
-    if (new_listener != nullptr) {
-      // Hands off connections redirected by iptables to the listener associated with the
-      // original destination address. Pass 'hand_off_restored_destionations' as false to
-      // prevent further redirection.
-      new_listener->onAccept(std::move(socket_), false);
-    } else {
-      // Set default transport protocol if none of the listener filters did it.
-      if (socket_->detectedTransportProtocol().empty()) {
-        socket_->setDetectedTransportProtocol(
-            Extensions::TransportSockets::TransportSocketNames::get().RawBuffer);
-      }
-      // Create a new connection on this listener.
-      newConnection(std::move(socket_));
-    }
+    newConnection(std::move(socket_));
   }
 
   // Filter execution concluded, unlink and delete this ActiveSocket if it was linked.
