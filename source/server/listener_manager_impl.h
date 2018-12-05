@@ -289,6 +289,7 @@ public:
     ensureSocketOptions();
     Network::Socket::appendOptions(listen_socket_options_, options);
   }
+  const Network::ListenerConfig& listenerConfig() const override { return *this; }
 
   // Network::DrainDecision
   bool drainClose() const override;
