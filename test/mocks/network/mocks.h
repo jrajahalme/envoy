@@ -363,9 +363,10 @@ public:
   MOCK_METHOD0(filterChainManager, FilterChainManager&());
   MOCK_METHOD0(filterChainFactory, FilterChainFactory&());
   MOCK_METHOD0(socket, Socket&());
-  MOCK_METHOD0(bindToPort, bool());
+  MOCK_CONST_METHOD0(socket, const Socket&());
+  MOCK_CONST_METHOD0(bindToPort, bool());
   MOCK_CONST_METHOD0(handOffRestoredDestinationConnections, bool());
-  MOCK_METHOD0(perConnectionBufferLimitBytes, uint32_t());
+  MOCK_CONST_METHOD0(perConnectionBufferLimitBytes, uint32_t());
   MOCK_METHOD0(listenerScope, Stats::Scope&());
   MOCK_CONST_METHOD0(listenerTag, uint64_t());
   MOCK_CONST_METHOD0(name, const std::string&());

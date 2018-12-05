@@ -43,11 +43,12 @@ public:
     Network::FilterChainManager& filterChainManager() override { return parent_.manager_; }
     Network::FilterChainFactory& filterChainFactory() override { return parent_.factory_; }
     Network::Socket& socket() override { return socket_; }
-    bool bindToPort() override { return bind_to_port_; }
+    const Network::Socket& socket() const override { return socket_; }
+    bool bindToPort() const override { return bind_to_port_; }
     bool handOffRestoredDestinationConnections() const override {
       return hand_off_restored_destination_connections_;
     }
-    uint32_t perConnectionBufferLimitBytes() override { return 0; }
+    uint32_t perConnectionBufferLimitBytes() const override { return 0; }
     Stats::Scope& listenerScope() override { return parent_.stats_store_; }
     uint64_t listenerTag() const override { return tag_; }
     const std::string& name() const override { return name_; }

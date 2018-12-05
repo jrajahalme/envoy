@@ -240,11 +240,12 @@ public:
   Network::FilterChainManager& filterChainManager() override { return *this; }
   Network::FilterChainFactory& filterChainFactory() override { return *this; }
   Network::Socket& socket() override { return *socket_; }
-  bool bindToPort() override { return bind_to_port_; }
+  const Network::Socket& socket() const override { return *socket_; }
+  bool bindToPort() const override { return bind_to_port_; }
   bool handOffRestoredDestinationConnections() const override {
     return hand_off_restored_destination_connections_;
   }
-  uint32_t perConnectionBufferLimitBytes() override { return per_connection_buffer_limit_bytes_; }
+  uint32_t perConnectionBufferLimitBytes() const override { return per_connection_buffer_limit_bytes_; }
   Stats::Scope& listenerScope() override { return *listener_scope_; }
   uint64_t listenerTag() const override { return listener_tag_; }
   const std::string& name() const override { return name_; }

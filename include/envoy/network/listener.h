@@ -36,13 +36,14 @@ public:
    *         different from configured if for example the configured address binds to port zero.
    */
   virtual Socket& socket() PURE;
+  virtual const Socket& socket() const PURE;
 
   /**
    * @return bool specifies whether the listener should actually listen on the port.
    *         A listener that doesn't listen on a port can only receive connections
    *         redirected from other listeners.
    */
-  virtual bool bindToPort() PURE;
+  virtual bool bindToPort() const PURE;
 
   /**
    * @return bool if a connection should be handed off to another Listener after the original
@@ -56,7 +57,7 @@ public:
    * @return uint32_t providing a soft limit on size of the listener's new connection read and write
    *         buffers.
    */
-  virtual uint32_t perConnectionBufferLimitBytes() PURE;
+  virtual uint32_t perConnectionBufferLimitBytes() const PURE;
 
   /**
    * @return Stats::Scope& the stats scope to use for all listener specific stats.
