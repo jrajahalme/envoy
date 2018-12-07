@@ -60,7 +60,9 @@ ConnectionImpl::ConnectionImpl(Event::Dispatcher& dispatcher, ConnectionSocketPt
     connecting_ = true;
   }
 
-  transport_socket_->setTransportSocketCallbacks(*this);
+  if (transport_socket_) {
+    transport_socket_->setTransportSocketCallbacks(*this);
+  }
 
   // We never ask for both early close and read at the same time. If we are reading, we want to
   // consume all available data.
@@ -507,10 +509,12 @@ void ConnectionImpl::onWriteReady() {
   ENVOY_CONN_LOG(trace, "write ready", *this);
 
   if (connecting_) {
-    int error;
-    socklen_t error_size = sizeof(error);
-    int rc = getsockopt(fd(), SOL_SOCKET, SO_ERROR, &error, &error_size);
-    ASSERT(0 == rc);
+    int error = 0;
+    if (nextProtocol() != "cilium.transport_sockets.mux") {
+      socklen_t error_size = sizeof(error);
+      int rc = getsockopt(fd(), SOL_SOCKET, SO_ERROR, &error, &error_size);
+      ASSERT(0 == rc);
+    }
 
     if (error == 0) {
       ENVOY_CONN_LOG(debug, "connected", *this);
@@ -599,7 +603,7 @@ ClientConnectionImpl::ClientConnectionImpl(
     Network::TransportSocketPtr&& transport_socket,
     const Network::ConnectionSocket::OptionsSharedPtr& options)
     : ConnectionImpl(dispatcher, std::make_unique<ClientSocketImpl>(remote_address),
-                     std::move(transport_socket), false) {
+                     nullptr, false) {
   // There are no meaningful socket options or source address semantics for
   // non-IP sockets, so skip.
   if (remote_address->ip() != nullptr) {
@@ -628,11 +632,14 @@ ClientConnectionImpl::ClientConnectionImpl(
       }
     }
   }
+  transport_socket_ = std::move(transport_socket);
+  transport_socket_->setTransportSocketCallbacks(*this);
 }
 
 void ClientConnectionImpl::connect() {
   if (nextProtocol() == "cilium.transport_sockets.mux") {
     ENVOY_CONN_LOG(debug, "SKIPPING connecting to {} due to {}", *this, socket_->remoteAddress()->asString(), nextProtocol());
+    file_event_->activate(Event::FileReadyType::Write); // Wake up the writer
     return;
   }
   ENVOY_CONN_LOG(debug, "connecting to {}", *this, socket_->remoteAddress()->asString());
