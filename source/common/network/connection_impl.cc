@@ -600,10 +600,6 @@ ClientConnectionImpl::ClientConnectionImpl(
     const Network::ConnectionSocket::OptionsSharedPtr& options)
     : ConnectionImpl(dispatcher, std::make_unique<ClientSocketImpl>(remote_address),
                      std::move(transport_socket), false) {
-  if (nextProtocol() == "cilium.transport_sockets.mux") {
-    ENVOY_CONN_LOG(debug, "SKIPPING binding and socket options due to {}", *this, nextProtocol());
-    return;
-  }
   // There are no meaningful socket options or source address semantics for
   // non-IP sockets, so skip.
   if (remote_address->ip() != nullptr) {
