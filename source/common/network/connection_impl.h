@@ -151,6 +151,25 @@ protected:
   bool bind_error_{false};
   Event::FileEventPtr file_event_;
 
+  uint32_t events_{};
+  
+  void setEnabled(uint32_t events) {
+    if (nextProtocol() != "cilium.transport_sockets.mux") {
+      file_event_->setEnabled(events);
+    } else {	  
+      events_ = events;
+      enableCurrentEvents();
+    }
+  }
+  void enableCurrentEvents() {
+    uint32_t events = events_;
+    if (write_buffer_->length() == 0) {
+      ENVOY_LOG_MISC(debug, "Clearing WRITE bit for fd {}", fd());
+      events &= ~Event::FileReadyType::Write;
+    }
+    file_event_->setEnabled(events);
+  }
+  
 private:
   friend class Envoy::RandomPauseFilter;
   friend class Envoy::TestPauseFilter;

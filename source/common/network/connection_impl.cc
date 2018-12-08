@@ -66,9 +66,10 @@ ConnectionImpl::ConnectionImpl(Event::Dispatcher& dispatcher, ConnectionSocketPt
 
   // We never ask for both early close and read at the same time. If we are reading, we want to
   // consume all available data.
+  events_ = Event::FileReadyType::Read | Event::FileReadyType::Write;
   file_event_ = dispatcher_.createFileEvent(
       fd(), [this](uint32_t events) -> void { onFileEvent(events); }, Event::FileTriggerType::Edge,
-      Event::FileReadyType::Read | Event::FileReadyType::Write);
+      events_);
 }
 
 ConnectionImpl::~ConnectionImpl() {
@@ -156,8 +157,8 @@ void ConnectionImpl::close(ConnectionCloseType type) {
       delayed_close_timer_->enableTimer(delayedCloseTimeout());
     }
 
-    file_event_->setEnabled(Event::FileReadyType::Write |
-                            (enable_half_close_ ? 0 : Event::FileReadyType::Closed));
+    setEnabled(Event::FileReadyType::Write |
+	       (enable_half_close_ ? 0 : Event::FileReadyType::Closed));
   }
 }
 
@@ -301,9 +302,9 @@ void ConnectionImpl::readDisable(bool disable) {
     // If half-close semantics are enabled, we never want early close notifications; we
     // always want to read all available data, even if the other side has closed.
     if (detect_early_close_ && !enable_half_close_) {
-      file_event_->setEnabled(Event::FileReadyType::Write | Event::FileReadyType::Closed);
+      setEnabled(Event::FileReadyType::Write | Event::FileReadyType::Closed);
     } else {
-      file_event_->setEnabled(Event::FileReadyType::Write);
+      setEnabled(Event::FileReadyType::Write);
     }
   } else {
     if (read_disable_count_ > 0) {
@@ -314,7 +315,7 @@ void ConnectionImpl::readDisable(bool disable) {
     read_enabled_ = true;
     // We never ask for both early close and read at the same time. If we are reading, we want to
     // consume all available data.
-    file_event_->setEnabled(Event::FileReadyType::Read | Event::FileReadyType::Write);
+    setEnabled(Event::FileReadyType::Read | Event::FileReadyType::Write);
     // If the connection has data buffered there's no guarantee there's also data in the kernel
     // which will kick off the filter chain. Instead fake an event to make sure the buffered data
     // gets processed regardless.
@@ -388,6 +389,9 @@ void ConnectionImpl::write(Buffer::Instance& data, bool end_stream) {
     // doWriteReady into thinking the socket is connected. On OS X, the underlying write may fail
     // with a connection error if a call to write(2) occurs before the connection is completed.
     if (!connecting_) {
+      if (nextProtocol() == "cilium.transport_sockets.mux") {
+	enableCurrentEvents();
+      }
       file_event_->activate(Event::FileReadyType::Write);
     }
   }
@@ -554,6 +558,12 @@ void ConnectionImpl::onWriteReady() {
         return;
       }
     }
+  }
+  // XXX: Edge triggering breaks down and busy loops with dupped sockets,
+  // disable writes until there is more data.
+  // This disables writes if write buffer is empty and re-enables writes otherwise (if enabled before).
+  if (nextProtocol() == "cilium.transport_sockets.mux") {
+    enableCurrentEvents();
   }
 }
 
