@@ -53,7 +53,9 @@ class ConnectionImpl : public virtual Connection,
                        protected Logger::Loggable<Logger::Id::connection> {
 public:
   ConnectionImpl(Event::Dispatcher& dispatcher, ConnectionSocketPtr&& socket,
-                 TransportSocketPtr&& transport_socket, bool connected);
+                 TransportSocketPtr&& transport_socket,
+                 const Network::ConnectionSocket::OptionsSharedPtr& options,
+                 bool connected);
 
   ~ConnectionImpl();
 
@@ -117,7 +119,7 @@ public:
   // TODO(htuch): While this is the basis for also yielding to other connections to provide some
   // fair sharing of CPU resources, the underlying event loop does not make any fairness guarantees.
   // Reconsider how to make fairness happen.
-  void setReadBufferReady() override { file_event_->activate(Event::FileReadyType::Read); }
+  void setReadBufferReady() override { activate(Event::FileReadyType::Read); }
 
   // Obtain global next connection ID. This should only be used in tests.
   static uint64_t nextGlobalIdForTest() { return next_global_id_; }
@@ -146,30 +148,26 @@ protected:
   std::chrono::milliseconds delayed_close_timeout_{0};
 
 protected:
+  Event::Dispatcher& dispatcher_;
   bool connecting_{false};
   ConnectionEvent immediate_error_event_{ConnectionEvent::Connected};
   bool bind_error_{false};
   Event::FileEventPtr file_event_;
 
-  uint32_t events_{};
-  
   void setEnabled(uint32_t events) {
-    if (nextProtocol() != "cilium.transport_sockets.mux") {
+    if (file_event_) {
       file_event_->setEnabled(events);
-    } else {	  
-      events_ = events;
-      enableCurrentEvents();
     }
   }
-  void enableCurrentEvents() {
-    uint32_t events = events_;
-    if (write_buffer_->length() == 0) {
-      ENVOY_LOG_MISC(debug, "Clearing WRITE bit for fd {}", fd());
-      events &= ~Event::FileReadyType::Write;
+
+  void activate(uint32_t events) {
+    if (file_event_) {
+      file_event_->activate(events);
+    } else {
+      dispatcher_.post([this,events]() -> void { onFileEvent(events); });
     }
-    file_event_->setEnabled(events);
   }
-  
+
 private:
   friend class Envoy::RandomPauseFilter;
   friend class Envoy::TestPauseFilter;
@@ -189,7 +187,6 @@ private:
 
   static std::atomic<uint64_t> next_global_id_;
 
-  Event::Dispatcher& dispatcher_;
   const uint64_t id_;
   Event::TimerPtr delayed_close_timer_;
   std::list<ConnectionCallbacks*> callbacks_;

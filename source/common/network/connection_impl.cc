@@ -45,7 +45,9 @@ void ConnectionImplUtility::updateBufferStats(uint64_t delta, uint64_t new_total
 std::atomic<uint64_t> ConnectionImpl::next_global_id_;
 
 ConnectionImpl::ConnectionImpl(Event::Dispatcher& dispatcher, ConnectionSocketPtr&& socket,
-                               TransportSocketPtr&& transport_socket, bool connected)
+                               TransportSocketPtr&& transport_socket,
+                               const Network::ConnectionSocket::OptionsSharedPtr& options,
+                               bool connected)
     : transport_socket_(std::move(transport_socket)), filter_manager_(*this, *this),
       socket_(std::move(socket)), stream_info_(dispatcher.timeSystem()),
       write_buffer_(
@@ -60,16 +62,33 @@ ConnectionImpl::ConnectionImpl(Event::Dispatcher& dispatcher, ConnectionSocketPt
     connecting_ = true;
   }
 
-  if (transport_socket_) {
-    transport_socket_->setTransportSocketCallbacks(*this);
-  }
-
   // We never ask for both early close and read at the same time. If we are reading, we want to
   // consume all available data.
-  events_ = Event::FileReadyType::Read | Event::FileReadyType::Write;
-  file_event_ = dispatcher_.createFileEvent(
-      fd(), [this](uint32_t events) -> void { onFileEvent(events); }, Event::FileTriggerType::Edge,
-      events_);
+  // XXX: Multiplexed transport does not use event loop directly.
+  // But when using file events, initialiation must be done before the portential
+  // activate() call below
+  if (nextProtocol() != "cilium.transport_sockets.mux") {
+    file_event_ = dispatcher_.createFileEvent(
+        fd(), [this](uint32_t events) -> void { onFileEvent(events); }, Event::FileTriggerType::Edge,
+        Event::FileReadyType::Read | Event::FileReadyType::Write);
+  }
+
+  // XXX: Multiplexed transport requires socket options be set before setting the callbacks
+  // below.
+  // There are no meaningful socket options for non-IP sockets, so skip.
+  if (socket_->remoteAddress() != nullptr && socket_->remoteAddress()->ip() != nullptr) {
+    if (!Network::Socket::applyOptions(options, *socket_,
+                                       envoy::api::v2::core::SocketOption::STATE_PREBIND)) {
+      // Set a special error state to ensure asynchronous close to give the owner of the
+      // ConnectionImpl a chance to add callbacks and detect the "disconnect".
+      immediate_error_event_ = ConnectionEvent::LocalClose;
+      // Trigger a write event to close this connection out-of-band.
+      activate(Event::FileReadyType::Write);
+      return;
+    }
+  }
+
+  transport_socket_->setTransportSocketCallbacks(*this);
 }
 
 ConnectionImpl::~ConnectionImpl() {
@@ -320,7 +339,7 @@ void ConnectionImpl::readDisable(bool disable) {
     // which will kick off the filter chain. Instead fake an event to make sure the buffered data
     // gets processed regardless.
     if (read_buffer_.length() > 0) {
-      file_event_->activate(Event::FileReadyType::Read);
+      activate(Event::FileReadyType::Read);
     }
   }
 }
@@ -389,10 +408,7 @@ void ConnectionImpl::write(Buffer::Instance& data, bool end_stream) {
     // doWriteReady into thinking the socket is connected. On OS X, the underlying write may fail
     // with a connection error if a call to write(2) occurs before the connection is completed.
     if (!connecting_) {
-      if (nextProtocol() == "cilium.transport_sockets.mux") {
-	enableCurrentEvents();
-      }
-      file_event_->activate(Event::FileReadyType::Write);
+      activate(Event::FileReadyType::Write);
     }
   }
 }
@@ -559,12 +575,6 @@ void ConnectionImpl::onWriteReady() {
       }
     }
   }
-  // XXX: Edge triggering breaks down and busy loops with dupped sockets,
-  // disable writes until there is more data.
-  // This disables writes if write buffer is empty and re-enables writes otherwise (if enabled before).
-  if (nextProtocol() == "cilium.transport_sockets.mux") {
-    enableCurrentEvents();
-  }
 }
 
 void ConnectionImpl::setConnectionStats(const ConnectionStats& stats) {
@@ -613,20 +623,9 @@ ClientConnectionImpl::ClientConnectionImpl(
     Network::TransportSocketPtr&& transport_socket,
     const Network::ConnectionSocket::OptionsSharedPtr& options)
     : ConnectionImpl(dispatcher, std::make_unique<ClientSocketImpl>(remote_address),
-                     nullptr, false) {
-  // There are no meaningful socket options or source address semantics for
-  // non-IP sockets, so skip.
+		     std::move(transport_socket), options, false) {
+  // There are no meaningful source address semantics for non-IP sockets, so skip.
   if (remote_address->ip() != nullptr) {
-    if (!Network::Socket::applyOptions(options, *socket_,
-                                       envoy::api::v2::core::SocketOption::STATE_PREBIND)) {
-      // Set a special error state to ensure asynchronous close to give the owner of the
-      // ConnectionImpl a chance to add callbacks and detect the "disconnect".
-      immediate_error_event_ = ConnectionEvent::LocalClose;
-      // Trigger a write event to close this connection out-of-band.
-      file_event_->activate(Event::FileReadyType::Write);
-      return;
-    }
-
     if (source_address != nullptr) {
       const Api::SysCallIntResult result = source_address->bind(fd());
       if (result.rc_ < 0) {
@@ -638,18 +637,16 @@ ClientConnectionImpl::ClientConnectionImpl(
         immediate_error_event_ = ConnectionEvent::LocalClose;
 
         // Trigger a write event to close this connection out-of-band.
-        file_event_->activate(Event::FileReadyType::Write);
+        activate(Event::FileReadyType::Write);
       }
     }
   }
-  transport_socket_ = std::move(transport_socket);
-  transport_socket_->setTransportSocketCallbacks(*this);
 }
 
 void ClientConnectionImpl::connect() {
   if (nextProtocol() == "cilium.transport_sockets.mux") {
     ENVOY_CONN_LOG(debug, "SKIPPING connecting to {} due to {}", *this, socket_->remoteAddress()->asString(), nextProtocol());
-    file_event_->activate(Event::FileReadyType::Write); // Wake up the writer
+    activate(Event::FileReadyType::Write); // Cause connected callbacks to be called
     return;
   }
   ENVOY_CONN_LOG(debug, "connecting to {}", *this, socket_->remoteAddress()->asString());
@@ -668,7 +665,7 @@ void ClientConnectionImpl::connect() {
       ENVOY_CONN_LOG(debug, "immediate connection error: {}", *this, result.errno_);
 
       // Trigger a write event. This is needed on OSX and seems harmless on Linux.
-      file_event_->activate(Event::FileReadyType::Write);
+      activate(Event::FileReadyType::Write);
     }
   }
 

@@ -81,7 +81,7 @@ TEST_P(ConnectionImplDeathTest, BadFd) {
   Event::DispatcherImpl dispatcher(time_system);
   EXPECT_DEATH_LOG_TO_STDERR(
       ConnectionImpl(dispatcher, std::make_unique<ConnectionSocketImpl>(-1, nullptr, nullptr),
-                     Network::Test::createRawBufferSocket(), false),
+                     Network::Test::createRawBufferSocket(), nullptr, false),
       ".*assert failure: fd\\(\\) != -1.*");
 }
 
@@ -958,7 +958,7 @@ TEST_P(ConnectionImplTest, FlushWriteCloseTimeoutTest) {
   ConnectionMocks mocks = createConnectionMocks();
   auto server_connection = std::make_unique<Network::ConnectionImpl>(
       *mocks.dispatcher, std::make_unique<ConnectionSocketImpl>(0, nullptr, nullptr),
-      std::move(mocks.transport_socket), true);
+      std::move(mocks.transport_socket), nullptr, true);
 
   InSequence s1;
 
@@ -1083,7 +1083,7 @@ TEST_P(ConnectionImplTest, FlushWriteAndDelayConfigDisabledTest) {
       }));
   std::unique_ptr<Network::ConnectionImpl> server_connection(new Network::ConnectionImpl(
       dispatcher, std::make_unique<ConnectionSocketImpl>(0, nullptr, nullptr),
-      std::make_unique<NiceMock<MockTransportSocket>>(), true));
+      std::make_unique<NiceMock<MockTransportSocket>>(), nullptr, true));
 
   time_system_.setMonotonicTime(std::chrono::milliseconds(0));
 
@@ -1111,7 +1111,7 @@ TEST_P(ConnectionImplTest, DelayedCloseTimeoutDisableOnSocketClose) {
   ConnectionMocks mocks = createConnectionMocks();
   auto server_connection = std::make_unique<Network::ConnectionImpl>(
       *mocks.dispatcher, std::make_unique<ConnectionSocketImpl>(0, nullptr, nullptr),
-      std::move(mocks.transport_socket), true);
+      std::move(mocks.transport_socket), nullptr, true);
 
   InSequence s1;
 
@@ -1135,7 +1135,7 @@ TEST_P(ConnectionImplTest, DelayedCloseTimeoutNullStats) {
   ConnectionMocks mocks = createConnectionMocks();
   auto server_connection = std::make_unique<Network::ConnectionImpl>(
       *mocks.dispatcher, std::make_unique<ConnectionSocketImpl>(0, nullptr, nullptr),
-      std::move(mocks.transport_socket), true);
+      std::move(mocks.transport_socket), nullptr, true);
 
   InSequence s1;
 
@@ -1183,7 +1183,7 @@ public:
         }));
     connection_ = std::make_unique<ConnectionImpl>(
         dispatcher_, std::make_unique<ConnectionSocketImpl>(0, nullptr, nullptr),
-        TransportSocketPtr(transport_socket_), true);
+        TransportSocketPtr(transport_socket_), nullptr, true);
     connection_->addConnectionCallbacks(callbacks_);
   }
 
