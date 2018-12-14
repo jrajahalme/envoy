@@ -2,7 +2,6 @@
 
 #include "envoy/buffer/buffer.h"
 #include "envoy/common/pure.h"
-#include "envoy/network/listen_socket.h"
 #include "envoy/ssl/connection.h"
 
 namespace Envoy {
@@ -52,14 +51,9 @@ public:
   virtual int fd() const PURE;
 
   /**
-   * @return ConnectionSocket the socket is operating on.
-   */
-  virtual ConnectionSocket& socket() PURE;
-
-  /**
    * @return Network::Connection& the connection interface.
    */
-  virtual Connection& connection() PURE;
+  virtual Network::Connection& connection() PURE;
 
   /**
    * @return bool whether the read buffer should be drained. This is used to enforce yielding for
@@ -112,7 +106,7 @@ public:
    * Closes the transport socket.
    * @param event supplies the connection event that is closing the socket.
    */
-  virtual void closeSocket(ConnectionEvent event) PURE;
+  virtual void closeSocket(Network::ConnectionEvent event) PURE;
 
   /**
    *

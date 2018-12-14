@@ -117,13 +117,6 @@ public:
   }
   absl::string_view requestedServerName() const override { return server_name_; }
 
-  void resetFd(int fd2) override {
-    if (fd2 != fd_) {
-      close();
-      fd_ = fd2;
-    }
-  }
-
 protected:
   Address::InstanceConstSharedPtr remote_address_;
   bool local_address_restored_{false};

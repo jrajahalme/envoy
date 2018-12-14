@@ -18,8 +18,6 @@ public:
       : parent_(parent) {}
 
   int fd() const override { return parent_.fd(); }
-  Network::ConnectionSocket& socket() override { return parent_.socket(); }
-
   Network::Connection& connection() override { return parent_.connection(); }
   bool shouldDrainReadBuffer() override { return false; }
   /*
