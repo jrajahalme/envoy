@@ -244,6 +244,7 @@ public:
   bool handOffRestoredDestinationConnections() const override {
     return hand_off_restored_destination_connections_;
   }
+  bool transparent() const override { return transparent_; }
   uint32_t perConnectionBufferLimitBytes() override { return per_connection_buffer_limit_bytes_; }
   Stats::Scope& listenerScope() override { return *listener_scope_; }
   uint64_t listenerTag() const override { return listener_tag_; }
@@ -374,6 +375,7 @@ private:
   Stats::ScopePtr listener_scope_; // Stats with listener named scope.
   const bool bind_to_port_;
   const bool hand_off_restored_destination_connections_;
+  const bool transparent_;
   const uint32_t per_connection_buffer_limit_bytes_;
   const uint64_t listener_tag_;
   const std::string name_;

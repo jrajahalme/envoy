@@ -68,6 +68,7 @@ public:
   Network::Socket& socket() override { return socket_; }
   bool bindToPort() override { return true; }
   bool handOffRestoredDestinationConnections() const override { return false; }
+  bool transparent() const override { return false; }
   uint32_t perConnectionBufferLimitBytes() override { return 0; }
   Stats::Scope& listenerScope() override { return stats_store_; }
   uint64_t listenerTag() const override { return 1; }
@@ -892,6 +893,7 @@ public:
   Network::Socket& socket() override { return socket_; }
   bool bindToPort() override { return true; }
   bool handOffRestoredDestinationConnections() const override { return false; }
+  bool transparent() const override { return false; }
   uint32_t perConnectionBufferLimitBytes() override { return 0; }
   Stats::Scope& listenerScope() override { return stats_store_; }
   uint64_t listenerTag() const override { return 1; }

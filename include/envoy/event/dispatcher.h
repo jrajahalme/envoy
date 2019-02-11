@@ -107,7 +107,8 @@ public:
    */
   virtual Network::ListenerPtr createListener(Network::Socket& socket,
                                               Network::ListenerCallbacks& cb, bool bind_to_port,
-                                              bool hand_off_restored_destination_connections) PURE;
+                                              bool hand_off_restored_destination_connections,
+                                              bool transparent) PURE;
 
   /**
    * Allocate a timer. @see Timer for docs on how to use the timer.

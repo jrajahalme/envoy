@@ -45,15 +45,16 @@ void ListenerImpl::listenCallback(evconnlistener*, evutil_socket_t fd, sockaddr*
 }
 
 ListenerImpl::ListenerImpl(Event::DispatcherImpl& dispatcher, Socket& socket, ListenerCallbacks& cb,
-                           bool bind_to_port, bool hand_off_restored_destination_connections)
+                           bool bind_to_port, bool hand_off_restored_destination_connections,
+                           bool transparent)
     : local_address_(nullptr), cb_(cb),
       hand_off_restored_destination_connections_(hand_off_restored_destination_connections),
       listener_(nullptr) {
   const auto ip = socket.localAddress()->ip();
 
   // Only use the listen socket's local address for new connections if it is not the all hosts
-  // address (e.g., 0.0.0.0 for IPv4).
-  if (!(ip && ip->isAnyAddress())) {
+  // address (e.g., 0.0.0.0 for IPv4) and the listener is not transparent.
+  if (!transparent && !(ip && ip->isAnyAddress())) {
     local_address_ = socket.localAddress();
   }
 

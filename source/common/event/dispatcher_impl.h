@@ -49,7 +49,8 @@ public:
   Filesystem::WatcherPtr createFilesystemWatcher() override;
   Network::ListenerPtr createListener(Network::Socket& socket, Network::ListenerCallbacks& cb,
                                       bool bind_to_port,
-                                      bool hand_off_restored_destination_connections) override;
+                                      bool hand_off_restored_destination_connections,
+                                      bool transparent) override;
   TimerPtr createTimer(TimerCb cb) override;
   void deferredDelete(DeferredDeletablePtr&& to_delete) override;
   void exit() override;

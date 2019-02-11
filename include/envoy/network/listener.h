@@ -53,6 +53,13 @@ public:
   virtual bool handOffRestoredDestinationConnections() const PURE;
 
   /**
+   * @return bool if the listener is listening on a transparent socket. In this case the listening
+   *         address must not be used as the local address of new connections, as the actual local
+   *         address of the connection is most likely different.
+   */
+  virtual bool transparent() const PURE;
+
+  /**
    * @return uint32_t providing a soft limit on size of the listener's new connection read and write
    *         buffers.
    */

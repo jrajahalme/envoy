@@ -411,7 +411,7 @@ public:
     server_ = std::make_unique<TestDnsServer>(dispatcher_);
     socket_ = std::make_unique<Network::TcpListenSocket>(
         Network::Test::getCanonicalLoopbackAddress(GetParam()), nullptr, true);
-    listener_ = dispatcher_.createListener(*socket_, *server_, true, false);
+    listener_ = dispatcher_.createListener(*socket_, *server_, true, false, false);
 
     // Point c-ares at the listener with no search domains and TCP-only.
     peer_ = std::make_unique<DnsResolverImplPeer>(dynamic_cast<DnsResolverImpl*>(resolver_.get()));

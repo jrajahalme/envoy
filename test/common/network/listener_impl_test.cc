@@ -31,7 +31,7 @@ static void errorCallbackTest(Address::IpVersion version) {
   Network::MockListenerCallbacks listener_callbacks;
   Network::MockConnectionHandler connection_handler;
   Network::ListenerPtr listener =
-      dispatcher.createListener(socket, listener_callbacks, true, false);
+      dispatcher.createListener(socket, listener_callbacks, true, false, false);
 
   Network::ClientConnectionPtr client_connection = dispatcher.createClientConnection(
       socket.localAddress(), Network::Address::InstanceConstSharedPtr(),
@@ -66,9 +66,10 @@ TEST_P(ListenerImplDeathTest, ErrorCallback) {
 class TestListenerImpl : public ListenerImpl {
 public:
   TestListenerImpl(Event::DispatcherImpl& dispatcher, Socket& socket, ListenerCallbacks& cb,
-                   bool bind_to_port, bool hand_off_restored_destination_connections)
+                   bool bind_to_port, bool hand_off_restored_destination_connections,
+                   bool transparent)
       : ListenerImpl(dispatcher, socket, cb, bind_to_port,
-                     hand_off_restored_destination_connections) {}
+                     hand_off_restored_destination_connections, transparent) {}
 
   MOCK_METHOD1(getLocalAddress, Address::InstanceConstSharedPtr(int fd));
 };
@@ -115,10 +116,11 @@ TEST_P(ListenerImplTest, SetListeningSocketOptionsError) {
   socket.addOption(option);
   EXPECT_CALL(*option, setOption(_, envoy::api::v2::core::SocketOption::STATE_LISTENING))
       .WillOnce(Return(false));
-  EXPECT_THROW_WITH_MESSAGE(TestListenerImpl(dispatcher_, socket, listener_callbacks, true, false),
-                            CreateListenerException,
-                            fmt::format("cannot set post-listen socket option on socket: {}",
-                                        socket.localAddress()->asString()));
+  EXPECT_THROW_WITH_MESSAGE(
+      TestListenerImpl(dispatcher_, socket, listener_callbacks, true, false, false),
+      CreateListenerException,
+      fmt::format("cannot set post-listen socket option on socket: {}",
+                  socket.localAddress()->asString()));
 }
 
 TEST_P(ListenerImplTest, UseActualDst) {

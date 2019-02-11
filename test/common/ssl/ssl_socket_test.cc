@@ -68,7 +68,7 @@ void testUtil(const std::string& client_ctx_yaml, const std::string& server_ctx_
                                   true);
   Network::MockListenerCallbacks callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher.createListener(socket, callbacks, true, false);
+  Network::ListenerPtr listener = dispatcher.createListener(socket, callbacks, true, false, false);
 
   envoy::api::v2::auth::UpstreamTlsContext client_tls_context;
   MessageUtil::loadFromYaml(TestEnvironment::substitute(client_ctx_yaml), client_tls_context);
@@ -185,7 +185,7 @@ const std::string testUtilV2(
                                   true);
   NiceMock<Network::MockListenerCallbacks> callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher.createListener(socket, callbacks, true, false);
+  Network::ListenerPtr listener = dispatcher.createListener(socket, callbacks, true, false, false);
 
   auto client_cfg = std::make_unique<ClientContextConfigImpl>(client_ctx_proto, factory_context);
   Stats::IsolatedStoreImpl client_stats_store;
@@ -1684,7 +1684,8 @@ TEST_P(SslSocketTest, FlushCloseDuringHandshake) {
                                   true);
   Network::MockListenerCallbacks callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher_->createListener(socket, callbacks, true, false);
+  Network::ListenerPtr listener =
+      dispatcher_->createListener(socket, callbacks, true, false, false);
 
   Network::ClientConnectionPtr client_connection = dispatcher_->createClientConnection(
       socket.localAddress(), Network::Address::InstanceConstSharedPtr(),
@@ -1746,7 +1747,7 @@ TEST_P(SslSocketTest, HalfClose) {
   Network::MockListenerCallbacks listener_callbacks;
   Network::MockConnectionHandler connection_handler;
   Network::ListenerPtr listener =
-      dispatcher_->createListener(socket, listener_callbacks, true, false);
+      dispatcher_->createListener(socket, listener_callbacks, true, false, false);
   std::shared_ptr<Network::MockReadFilter> server_read_filter(new Network::MockReadFilter());
   std::shared_ptr<Network::MockReadFilter> client_read_filter(new Network::MockReadFilter());
 
@@ -1835,7 +1836,8 @@ TEST_P(SslSocketTest, ClientAuthMultipleCAs) {
                                   true);
   Network::MockListenerCallbacks callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher_->createListener(socket, callbacks, true, false);
+  Network::ListenerPtr listener =
+      dispatcher_->createListener(socket, callbacks, true, false, false);
 
   const std::string client_ctx_yaml = R"EOF(
   common_tls_context:
@@ -1931,8 +1933,10 @@ void testTicketSessionResumption(const std::string& server_ctx_yaml1,
   Network::MockConnectionHandler connection_handler;
   DangerousDeprecatedTestTime test_time;
   Event::DispatcherImpl dispatcher(test_time.timeSystem());
-  Network::ListenerPtr listener1 = dispatcher.createListener(socket1, callbacks, true, false);
-  Network::ListenerPtr listener2 = dispatcher.createListener(socket2, callbacks, true, false);
+  Network::ListenerPtr listener1 =
+      dispatcher.createListener(socket1, callbacks, true, false, false);
+  Network::ListenerPtr listener2 =
+      dispatcher.createListener(socket2, callbacks, true, false, false);
 
   envoy::api::v2::auth::UpstreamTlsContext client_tls_context;
   MessageUtil::loadFromYaml(TestEnvironment::substitute(client_ctx_yaml), client_tls_context);
@@ -2333,8 +2337,10 @@ TEST_P(SslSocketTest, ClientAuthCrossListenerSessionResumption) {
                                    true);
   Network::MockListenerCallbacks callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher_->createListener(socket, callbacks, true, false);
-  Network::ListenerPtr listener2 = dispatcher_->createListener(socket2, callbacks, true, false);
+  Network::ListenerPtr listener =
+      dispatcher_->createListener(socket, callbacks, true, false, false);
+  Network::ListenerPtr listener2 =
+      dispatcher_->createListener(socket2, callbacks, true, false, false);
   const std::string client_ctx_yaml = R"EOF(
   common_tls_context:
     tls_certificates:
@@ -2449,7 +2455,8 @@ TEST_P(SslSocketTest, SslError) {
                                   true);
   Network::MockListenerCallbacks callbacks;
   Network::MockConnectionHandler connection_handler;
-  Network::ListenerPtr listener = dispatcher_->createListener(socket, callbacks, true, false);
+  Network::ListenerPtr listener =
+      dispatcher_->createListener(socket, callbacks, true, false, false);
 
   Network::ClientConnectionPtr client_connection = dispatcher_->createClientConnection(
       socket.localAddress(), Network::Address::InstanceConstSharedPtr(),
@@ -2924,7 +2931,7 @@ public:
     server_ssl_socket_factory_ = std::make_unique<ServerSslSocketFactory>(
         std::move(server_cfg), *manager_, server_stats_store_, std::vector<std::string>{});
 
-    listener_ = dispatcher_->createListener(socket_, listener_callbacks_, true, false);
+    listener_ = dispatcher_->createListener(socket_, listener_callbacks_, true, false, false);
 
     MessageUtil::loadFromYaml(TestEnvironment::substitute(client_ctx_yaml_), upstream_tls_context_);
     auto client_cfg =
