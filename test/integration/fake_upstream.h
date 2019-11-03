@@ -395,7 +395,7 @@ protected:
   FakeConnectionBase(SharedConnectionWrapper& shared_connection, Event::TestTimeSystem& time_system)
       : shared_connection_(shared_connection), time_system_(time_system) {}
 
-  Common::CallbackHandle* disconnect_callback_handle_;
+  Common::CallbackHandle* disconnect_callback_handle_{};
   SharedConnectionWrapper& shared_connection_;
   bool initialized_{};
   Thread::CondVar connection_event_;
@@ -533,7 +533,7 @@ public:
                Event::TestTimeSystem& time_system, bool enable_half_close = false);
   FakeUpstream(Network::TransportSocketFactoryPtr&& transport_socket_factory, uint32_t port,
                FakeHttpConnection::Type type, Network::Address::IpVersion version,
-               Event::TestTimeSystem& time_system);
+               Event::TestTimeSystem& time_system, bool enable_half_close = false);
   ~FakeUpstream() override;
 
   FakeHttpConnection::Type httpType() { return http_type_; }
