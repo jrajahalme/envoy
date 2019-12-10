@@ -386,9 +386,10 @@ FakeUpstream::FakeUpstream(uint32_t port, FakeHttpConnection::Type type,
 
 FakeUpstream::FakeUpstream(Network::TransportSocketFactoryPtr&& transport_socket_factory,
                            uint32_t port, FakeHttpConnection::Type type,
-                           Network::Address::IpVersion version, Event::TestTimeSystem& time_system)
+                           Network::Address::IpVersion version, Event::TestTimeSystem& time_system,
+                           bool enable_half_close)
     : FakeUpstream(std::move(transport_socket_factory), makeTcpListenSocket(port, version), type,
-                   time_system, false) {
+                   time_system, enable_half_close) {
   ENVOY_LOG(info, "starting fake SSL server on port {}. Address version is {}",
             this->localAddress()->ip()->port(), Network::Test::addressVersionAsString(version));
 }
@@ -477,7 +478,9 @@ AssertionResult FakeUpstream::waitForHttpConnection(Event::Dispatcher& client_di
                                                       max_request_headers_count);
   }
   VERIFY_ASSERTION(connection->initialize());
-  VERIFY_ASSERTION(connection->readDisable(false));
+  if (read_disable_on_new_connection_) {
+    VERIFY_ASSERTION(connection->readDisable(false));
+  }
   return AssertionSuccess();
 }
 
@@ -508,7 +511,9 @@ FakeUpstream::waitForHttpConnection(Event::Dispatcher& client_dispatcher,
             Http::DEFAULT_MAX_HEADERS_COUNT);
         lock.release();
         VERIFY_ASSERTION(connection->initialize());
-        VERIFY_ASSERTION(connection->readDisable(false));
+        if (upstream.read_disable_on_new_connection_) {
+          VERIFY_ASSERTION(connection->readDisable(false));
+        }
         return AssertionSuccess();
       }
     }
@@ -532,7 +537,9 @@ AssertionResult FakeUpstream::waitForRawConnection(FakeRawConnectionPtr& connect
     connection = std::make_unique<FakeRawConnection>(consumeConnection(), timeSystem());
   }
   VERIFY_ASSERTION(connection->initialize());
-  VERIFY_ASSERTION(connection->readDisable(false));
+  if (read_disable_on_new_connection_) {
+    VERIFY_ASSERTION(connection->readDisable(false));
+  }
   VERIFY_ASSERTION(connection->enableHalfClose(enable_half_close_));
   return AssertionSuccess();
 }
