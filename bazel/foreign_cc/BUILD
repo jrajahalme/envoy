@@ -16,6 +16,8 @@ configure_make(
         "--disable-libunwind",
     ] + select({
         "//bazel:apple": ["AR=/usr/bin/ar"],
+        "//bazel:linux_aarch64": ["--host aarch64-linux-gnu"],
+        "//bazel:linux_x86_64": ["--host x86_64-linux-gnu"],
         "//conditions:default": [],
     }),
     lib_source = "@com_github_gperftools_gperftools//:all",
@@ -75,6 +77,14 @@ configure_make(
         "//bazel:asan_build": {"ENVOY_CONFIG_ASAN": "1"},
         "//bazel:msan_build": {"ENVOY_CONFIG_MSAN": "1"},
         "//bazel:windows_dbg_build": {"WINDOWS_DBG_BUILD": "debug"},
+        "//bazel:linux_aarch64": {
+            "CC": "gcc",
+            "CROSS": "aarch64-linux-gnu-",
+        },
+        "//bazel:linux_x86_64": {
+            "CC": "gcc",
+            "CROSS": "x86_64-linux-gnu-",
+        },
         "//conditions:default": {},
     }),
     lib_source = "@com_github_luajit_luajit//:all",
@@ -95,6 +105,14 @@ configure_make(
         # TODO(htuch): Remove when #6084 is fixed
         "//bazel:asan_build": {"ENVOY_CONFIG_ASAN": "1"},
         "//bazel:msan_build": {"ENVOY_CONFIG_MSAN": "1"},
+        "//bazel:linux_aarch64": {
+            "CC": "gcc",
+            "CROSS": "aarch64-linux-gnu-",
+        },
+        "//bazel:linux_x86_64": {
+            "CC": "gcc",
+            "CROSS": "x86_64-linux-gnu-",
+        },
         "//conditions:default": {},
     }),
     lib_source = "@com_github_moonjit_moonjit//:all",
@@ -184,7 +202,6 @@ envoy_cmake(
         "CMAKE_CXX_COMPILER_FORCED": "on",
     },
     defines = ["CURL_STATICLIB"],
-    generate_crosstool_file = True,
     lib_source = "@com_github_curl//:all",
     out_static_libs = select({
         "//bazel:windows_x86_64": ["libcurl.lib"],
