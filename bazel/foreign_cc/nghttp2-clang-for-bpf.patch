@@ -1,0 +1,32 @@
+From e71bc177c7b78a6db887694893526f159358471e Mon Sep 17 00:00:00 2001
+From: Jarno Rajahalme <jarno@isovalent.com>
+Date: Tue, 18 Jan 2022 01:36:41 +0200
+Subject: [PATCH] libbpf: Check for clang
+
+BPF can only be built with clang.
+
+Signed-off-by: Jarno Rajahalme <jarno@isovalent.com>
+---
+ bpf/CMakeLists.txt | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/bpf/CMakeLists.txt b/bpf/CMakeLists.txt
+index 904b8218..7587f178 100644
+--- a/bpf/CMakeLists.txt
++++ b/bpf/CMakeLists.txt
+@@ -1,6 +1,11 @@
+ if(LIBBPF_FOUND)
++  if(CMAKE_C_COMPILER_ID MATCHES "Clang")
++    set(CMAKE_BPF_COMPILER ${CMAKE_C_COMPILER})
++  else()
++    set(CMAKE_BPF_COMPILER clang)
++  endif()
+   add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/reuseport_kern.o"
+-    COMMAND ${CMAKE_C_COMPILER} ${BPFCFLAGS} ${EXTRABPFCFLAGS} -I${LIBBPF_INCLUDE_DIRS} -target bpf -c reuseport_kern.c -o "${CMAKE_CURRENT_BINARY_DIR}/reuseport_kern.o"
++    COMMAND ${CMAKE_BPF_COMPILER} ${BPFCFLAGS} ${EXTRABPFCFLAGS} -I${LIBBPF_INCLUDE_DIRS} -target bpf -c reuseport_kern.c -o "${CMAKE_CURRENT_BINARY_DIR}/reuseport_kern.o"
+     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+     VERBATIM)
+ 
+-- 
+2.34.1
+
