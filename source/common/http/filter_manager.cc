@@ -1444,10 +1444,33 @@ bool FilterManager::createFilterChain() {
   return !upgrade_rejected;
 }
 
+void FilterManager::addUpstreamCallback(const UpstreamCallback& cb) {
+  decoder_filter_upstream_cbs_.emplace_back(cb);
+}
+  
+bool FilterManager::iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
+                                             StreamInfo::StreamInfo& upstream_info,
+                                             Http::RequestHeaderMap& headers) {
+  bool accept = true;
+  for (const auto& cb : decoder_filter_upstream_cbs_) {
+    accept = accept && cb(host, upstream_info, headers);
+  }
+  return accept;
+}
+
 bool ActiveStreamDecoderFilter::iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
                                                          StreamInfo::StreamInfo& stream_info) {
   return parent_.filter_manager_callbacks_.iterateUpstreamCallbacks(host, stream_info);
+}
 
+void ActiveStreamDecoderFilter::addUpstreamCallback(const UpstreamCallback& cb) {
+  parent_.addUpstreamCallback(cb);
+}
+
+bool ActiveStreamDecoderFilter::iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
+                                                         StreamInfo::StreamInfo& stream_info,
+                                                         Http::RequestHeaderMap& headers) {
+  return parent_.iterateUpstreamCallbacks(host, stream_info, headers);
 }
 
 void ActiveStreamDecoderFilter::requestDataDrained() {

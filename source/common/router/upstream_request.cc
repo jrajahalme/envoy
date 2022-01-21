@@ -508,6 +508,16 @@ void UpstreamRequest::onPoolReady(
     max_stream_duration_timer_->enableTimer(*max_stream_duration);
   }
 
+  bool accepted = parent_.callbacks()->iterateUpstreamCallbacks(host, stream_info_,
+                                                                *parent_.downstreamHeaders());
+  if (!accepted) {
+    calling_encode_headers_ = false;
+    stream_info_.setResponseFlag(StreamInfo::ResponseFlag::UnauthorizedExternalService);
+    parent_.callbacks()->sendLocalReply(Http::Code::Forbidden, "Access denied",
+                                        nullptr, absl::nullopt, absl::string_view());
+    return;
+  }
+  
   const Http::Status status =
       upstream_->encodeHeaders(*parent_.downstreamHeaders(), shouldSendEndStream());
   calling_encode_headers_ = false;
