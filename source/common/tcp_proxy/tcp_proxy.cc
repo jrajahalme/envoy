@@ -423,6 +423,13 @@ bool Filter::maybeTunnel(Upstream::ThreadLocalCluster& cluster) {
   generic_conn_pool_ = factory->createGenericConnPool(cluster, config_->tunnelingConfig(), this,
                                                       *upstream_callbacks_);
   if (generic_conn_pool_) {
+    bool accepted = read_callbacks_->iterateUpstreamCallbacks(generic_conn_pool_->host(), getStreamInfo());
+    if (!accepted) {
+      getStreamInfo().setResponseFlag(StreamInfo::ResponseFlag::UnauthorizedExternalService);
+      onInitFailure(UpstreamFailureReason::UnauthorizedExternalService);
+      return true;
+    }
+
     connecting_ = true;
     connect_attempts_++;
     getStreamInfo().setAttemptCount(connect_attempts_);

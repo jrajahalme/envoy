@@ -111,6 +111,22 @@ public:
 using WriteFilterSharedPtr = std::shared_ptr<WriteFilter>;
 
 /**
+ * UpstreamCallback can be used to reject upstream host selection made by the TCP proxy filter.
+ * This callback is passed the Upstream::HostDescriptionConstSharedPtr, and StreamInfo.
+ *
+ * The callback is called just after the upstream host has been picked, but before a connection is
+ * established. Here the callback can reject the selected upstream host and cause the be dropped.
+
+ * UpstreamCallback may not be called if the connection is dropped for another reason, such as
+ * no route, cluster is not found, etc.
+ *
+ * Returning 'true' allows the connection to be established. Returning 'false' prevents the
+ * connection to the selected host from being established.
+ */
+using UpstreamCallback = std::function<bool(Upstream::HostDescriptionConstSharedPtr,
+                                            StreamInfo::StreamInfo&)>;
+
+/**
  * Callbacks used by individual read filter instances to communicate with the filter manager.
  */
 class ReadFilterCallbacks : public virtual NetworkFilterCallbacks {
@@ -160,6 +176,18 @@ public:
    * Set the currently selected upstream host for the connection.
    */
   virtual void upstreamHost(Upstream::HostDescriptionConstSharedPtr host) PURE;
+
+  /**
+   * Adds the given callback to be executed later via iterateUpstreamCallbacks().
+   */
+  virtual void addUpstreamCallback(const UpstreamCallback& cb) PURE;
+
+  /**
+   * Invokes all the added callbacks before connecting to the selected upstream host.
+   * Returns 'false' if any of the callbacks rejects the connection, 'true' otherwise.
+   */
+  virtual bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr,
+                                        StreamInfo::StreamInfo&) PURE;
 };
 
 /**

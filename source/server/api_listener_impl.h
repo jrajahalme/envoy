@@ -73,6 +73,9 @@ protected:
     }
     Network::Connection& connection() override { return connection_; }
     const Network::Socket& socket() override { PANIC("not implemented"); }
+    void addUpstreamCallback(const Network::UpstreamCallback&) override {}
+    bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr,
+				  StreamInfo::StreamInfo&) override { return true; }
 
     // Synthetic class that acts as a stub for the connection backing the
     // Network::ReadFilterCallbacks.

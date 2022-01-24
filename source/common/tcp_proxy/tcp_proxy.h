@@ -328,6 +328,7 @@ protected:
     NoHealthyUpstream,
     ResourceLimitExceeded,
     NoRoute,
+    UnauthorizedExternalService,
   };
 
   // Callbacks for different error and success states during connection establishment

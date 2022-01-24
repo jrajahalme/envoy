@@ -632,6 +632,14 @@ Http::FilterHeadersStatus Filter::decodeHeaders(Http::RequestHeaderMap& headers,
     return Http::FilterHeadersStatus::StopIteration;
   }
 
+  bool accepted = callbacks_->iterateUpstreamCallbacks(host, callbacks_->streamInfo());
+  if (!accepted) {
+    callbacks_->streamInfo().setResponseFlag(StreamInfo::ResponseFlag::UnauthorizedExternalService);
+    callbacks_->sendLocalReply(Http::Code::Forbidden, "Access denied",
+                               nullptr, absl::nullopt, absl::string_view());
+    return Http::FilterHeadersStatus::StopIteration;
+  }
+  
   hedging_params_ = FilterUtility::finalHedgingParams(*route_entry_, headers);
 
   timeout_ = FilterUtility::finalTimeout(*route_entry_, headers, !config_.suppress_envoy_headers_,

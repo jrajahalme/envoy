@@ -32,6 +32,11 @@ public:
    * @param callbacks callbacks to communicate stream failure or creation on.
    */
   virtual void newStream(GenericConnectionPoolCallbacks& callbacks) PURE;
+
+  /**
+   * @return Upstream::HostDescriptionConstSharedPtr the host for which connections are pooled.
+   */
+  virtual Upstream::HostDescriptionConstSharedPtr host() const PURE;
 };
 
 // An API for the UpstreamRequest to get callbacks from either an HTTP or TCP

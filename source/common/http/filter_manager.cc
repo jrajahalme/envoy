@@ -1444,6 +1444,12 @@ bool FilterManager::createFilterChain() {
   return !upgrade_rejected;
 }
 
+bool ActiveStreamDecoderFilter::iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
+                                                         StreamInfo::StreamInfo& stream_info) {
+  return parent_.filter_manager_callbacks_.iterateUpstreamCallbacks(host, stream_info);
+
+}
+
 void ActiveStreamDecoderFilter::requestDataDrained() {
   // If this is called it means the call to requestDataTooLarge() was a
   // streaming call, or a 413 would have been sent.

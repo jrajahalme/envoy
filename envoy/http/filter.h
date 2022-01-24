@@ -624,6 +624,14 @@ public:
    * load balancing.
    */
   virtual absl::optional<absl::string_view> upstreamOverrideHost() const PURE;
+
+  /**
+   * Invokes all the added network level callbacks before establishing a connection to the
+   * selected upstream host.
+   * Returns 'false' if any of the callbacks rejects the request, 'true' otherwise.
+   */
+  virtual bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr,
+                                        StreamInfo::StreamInfo&) PURE;
 };
 
 /**

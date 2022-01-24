@@ -326,6 +326,10 @@ private:
   const Network::Connection* connection() override { return nullptr; }
   Event::Dispatcher& dispatcher() override { return parent_.dispatcher_; }
   void resetStream() override;
+  bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr,
+                                StreamInfo::StreamInfo&) override {
+    return true;
+  }
   Router::RouteConstSharedPtr route() override { return route_; }
   Router::RouteConstSharedPtr route(const Router::RouteCallback&) override { return nullptr; }
   void setRoute(Router::RouteConstSharedPtr) override {}

@@ -289,6 +289,11 @@ private:
       return connection_manager_.enable_internal_redirects_with_body_;
     }
 
+    bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
+				  StreamInfo::StreamInfo& stream_info) const override {
+      return connection_manager_.read_callbacks_->iterateUpstreamCallbacks(host, stream_info);
+    }
+
     void traceRequest();
 
     // Updates the snapped_route_config_ (by reselecting scoped route configuration), if a scope is

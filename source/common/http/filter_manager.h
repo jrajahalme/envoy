@@ -300,6 +300,9 @@ struct ActiveStreamDecoderFilter : public ActiveStreamFilterBase,
       Http::RouteConfigUpdatedCallbackSharedPtr route_config_updated_cb) override;
   absl::optional<Router::ConfigConstSharedPtr> routeConfig();
 
+  bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr host,
+                                StreamInfo::StreamInfo& stream_info) override;
+
   StreamDecoderFilterSharedPtr handle_;
   bool is_grpc_request_{};
 };
@@ -582,6 +585,12 @@ public:
    * Returns whether internal redirects with request bodies is enabled.
    */
   virtual bool enableInternalRedirectsWithBody() const PURE;
+
+  /**
+   * Returns whether connection to the selected upstream host is allowed.
+   */
+  virtual bool iterateUpstreamCallbacks(Upstream::HostDescriptionConstSharedPtr,
+                                        StreamInfo::StreamInfo&) const PURE;
 };
 
 /**
